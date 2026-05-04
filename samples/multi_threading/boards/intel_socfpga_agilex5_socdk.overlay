@@ -1,0 +1,16 @@
+/{
+      leds {
+        compatible = "gpio-leds";
+        /*
+         * led_0 is pin 1 on gpio0.
+         * The LED is on when the pin is low, and off when the pin is high.
+         */
+        led_0 {
+          gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
+        };
+      };
+
+      aliases {
+        led0 = &led0;
+    };
+};
