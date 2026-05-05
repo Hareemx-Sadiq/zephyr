@@ -11,21 +11,34 @@
 #define PRIORITY 7
 
 /* LED BLINKING TIME (in ms) */
-#define BLINKTIME 500  // = 1 Hz 
+#define BLINKTIME 500  // 500ms ON + 500ms OFF = 1 Hz (1 complete cycle )
 
 static const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+
+K_SEM_DEFINE(blink_sem, 0, 1);
+
+void blink_timer_expiry(struct k_timer *timer)
+{
+    k_sem_give(&blink_sem);
+}
+
+K_TIMER_DEFINE(blink_timer, blink_timer_expiry, NULL);
+
 
 void led_blink()
 {
 	uint8_t cpu;
-
+	int64_t ts;
 	int ret = gpio_pin_configure_dt(&led0, GPIO_OUTPUT_INACTIVE);
 	if (ret < 0) {
     	printk("GPIO configure failed: %d\n", ret);
     	return;
 	}
 
+	k_timer_start(&blink_timer, K_MSEC(500), K_MSEC(500));
+
 	while (1) {
+		k_sem_take(&blink_sem, K_FOREVER);
 #if CONFIG_SMP
 		cpu = arch_curr_cpu()->id;
 #else
@@ -34,22 +47,21 @@ void led_blink()
 		gpio_pin_toggle_dt(&led0);
 		int state = gpio_pin_get_dt(&led0);
 		printk("LED state: %s on cpu %d \n", state ? "ON" : "OFF", cpu);
-		k_msleep(BLINKTIME);
 	}
 }
 
 void uptime()
 {
 	uint8_t cpu;
-
+	int64_t ts;
 	while (1) {
 #if CONFIG_SMP
 		cpu = arch_curr_cpu()->id;
 #else
 		cpu = 0;
 #endif
-
-		printk("Time elapsed on cpu %d: %lld\n",cpu,k_uptime_get());
+	    ts= k_uptime_get();
+		printk("Time elapsed on cpu %d: %lld\n",cpu, ts);
 		k_msleep(1000); // Delaying it for 1 sec.
 	}
 }
@@ -85,7 +97,8 @@ K_THREAD_DEFINE(time_thread, STACKSIZE,
 
 int main(void)
 {
-	k_msleep(2000); // Delaying it for 2 sec to see on which core the scheduler scheduled the thread
+	k_msleep(2000); // Delaying it for 2 sec to see on which core the scheduler scheduled the thread initially
+	
 #if PIN_THREADS
 	if (arch_num_cpus() > 1) {
 
