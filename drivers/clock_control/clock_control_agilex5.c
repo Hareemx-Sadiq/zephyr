@@ -7,6 +7,7 @@
 
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/dt-bindings/clock/intel_socfpga_clock.h>
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
 #include "clock_control_agilex5_ll.h"
@@ -14,6 +15,9 @@
 #define DT_DRV_COMPAT intel_agilex5_clock
 
 LOG_MODULE_REGISTER(clock_control_agilex5, CONFIG_CLOCK_CONTROL_LOG_LEVEL);
+
+/* Virtual base used by the CLKCTRL_* macros in the low-level header. */
+uintptr_t clkctrl_base;
 
 struct clock_control_config {
 	DEVICE_MMIO_ROM;
@@ -26,8 +30,6 @@ struct clock_control_data {
 
 static int clock_init(const struct device *dev)
 {
-
-	LOG_DBG("Intel Agilex5 clock driver initialized!");
 	const struct clock_control_config *cfg = dev->config;
 
 	if (!device_is_ready(cfg->sysmgr)) {
@@ -35,6 +37,10 @@ static int clock_init(const struct device *dev)
 		return -ENODEV;
 	}
 
+	DEVICE_MMIO_MAP(dev, K_MEM_CACHE_NONE);
+	clkctrl_base = DEVICE_MMIO_GET(dev);
+
+	LOG_DBG("Intel Agilex5 clock driver initialized!");
 	return 0;
 }
 
