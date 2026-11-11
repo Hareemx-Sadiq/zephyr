@@ -13,8 +13,13 @@
 #include <zephyr/sys/sys_io.h>
 #include <zephyr/drivers/syscon.h>
 
-/* Clock control MMIO register base address */
-#define CLKCTRL_BASE_ADDR			DT_REG_ADDR(DT_NODELABEL(clock))
+/*
+ * Clock control MMIO register base. clock_init() maps the clock registers
+ * with DEVICE_MMIO_MAP() and stores the virtual address here. The register
+ * macros below add their offsets to this base.
+ */
+extern uintptr_t clkctrl_base;
+#define CLKCTRL_BASE_ADDR			clkctrl_base
 
 /* Clock manager/control register offsets */
 #define CLKCTRL_OFFSET				0x00
